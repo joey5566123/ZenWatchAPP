@@ -20,14 +20,16 @@ public class SQLiteManager extends SQLiteOpenHelper{
                 "axisX FLOAT, " +
                 "axisY FLOAT, " +
                 "axisZ FLOAT, " +
-                "StoreDate DATETIME " +
+                "StoreDate DATETIME, " +
+                "UnixStoreDate INT" +
                 ");";
         final String CreateAccelerometerTable = "CREATE TABLE IF NOT EXISTS " + AccelerometerTable + "( " +
                 "ID INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 "axisX FLOAT, " +
                 "axisY FLOAT, " +
                 "axisZ FLOAT, " +
-                "StoreDate DATETIME " +
+                "StoreDate DATETIME, " +
+                "UnixStoreDate INT" +
                 ");";
         db.execSQL(CreateGyroscopeTable);
         db.execSQL(CreateAccelerometerTable);
@@ -44,10 +46,10 @@ public class SQLiteManager extends SQLiteOpenHelper{
 
             switch (oldVersion){
                 case 1:
-                    final String DropGyroscopeTable = "DROP TABLE IF EXISTS " + GyroscopeTable;
-                    final String DropAccelerometerTable = "DROP TABLE IF EXISTS " + AccelerometerTable;
-                    db.execSQL(DropGyroscopeTable);
-                    db.execSQL(DropAccelerometerTable);
+                    final String DropGyroscopeTable_v1 = "DROP TABLE IF EXISTS " + GyroscopeTable;
+                    final String DropAccelerometerTable_v1 = "DROP TABLE IF EXISTS " + AccelerometerTable;
+                    db.execSQL(DropGyroscopeTable_v1);
+                    db.execSQL(DropAccelerometerTable_v1);
                     WatchMainActivity.updateLog("SQLiteManager", "Drop Table");
                     success = true;
                     break;

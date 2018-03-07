@@ -37,6 +37,8 @@ public class WatchMainActivity extends Activity{
     private boolean Recording = false, Transfer = false;
     private Intent ServiceIntent;
 
+    private static final String TAG = "MainActivity";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -193,7 +195,6 @@ public class WatchMainActivity extends Activity{
                     Log.d("Sending File", "Sending " + Data.getName() + "(" + AllByte.length + " bytes)");
                     os.write(AllByte, 0, AllByte.length);
                     os.flush();
-                    os.close();
                 }
             }
             catch (Exception ignored){
@@ -204,13 +205,13 @@ public class WatchMainActivity extends Activity{
         protected void onPostExecute(String value){
             Transfer = false;
             export_status_view.setText("Done");
-            if (ExportSocket.isConnected()){
+            /*if (ExportSocket.isConnected()){
                 try {
                     ExportSocket.close();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-            }
+            }*/
         }
         @Override
         protected void onPreExecute() {

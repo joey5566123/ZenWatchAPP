@@ -1,5 +1,7 @@
 package com.example.lee.zenwatchapp;
 
+import android.annotation.SuppressLint;
+import android.annotation.TargetApi;
 import android.app.Service;
 import android.content.ContentValues;
 import android.content.Context;
@@ -11,7 +13,9 @@ import android.hardware.SensorManager;
 import android.os.AsyncTask;
 import android.os.Environment;
 import android.os.IBinder;
+import android.os.PowerManager;
 import android.support.annotation.Nullable;
+import android.util.Log;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -27,9 +31,10 @@ public class RecordService extends Service{
     private static final String TAG = "RecordService";
     private float GyroscopeTimestamp, AccelerometerTimestamp;
     private SQLiteManager SQLiteManag;
-    private final static int SQLiteVersion = 2;
+    private final static int SQLiteVersion = 1;
     private SensorManager mSensorManager;
     public boolean InsertGyroscopeToken,InsertAccelerometerToken;
+    private PowerManager.WakeLock wakeLock;
 
     @Override
     public void onCreate(){
@@ -51,6 +56,7 @@ public class RecordService extends Service{
         InsertGyroscopeToken = false;
         InsertAccelerometerToken = false;
         new ExportDBFile().executeOnExecutor(AsyncTask.SERIAL_EXECUTOR);
+        wakeLock.release();
         super.onDestroy();
     }
 
@@ -61,6 +67,13 @@ public class RecordService extends Service{
     }
 
     private void Init(){
+
+        PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
+
+        assert powerManager != null;
+        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MyWakelockTag");
+
+        wakeLock.acquire();
 
         SQLiteManag = new SQLiteManager(this, WatchMainActivity.App_ID() + ".db", null, SQLiteVersion);
 
@@ -90,8 +103,8 @@ public class RecordService extends Service{
             }
         };
 
-        mSensorManager.registerListener(mSensorListener, mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_NORMAL);
-        mSensorManager.registerListener(mSensorListener, mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE), SensorManager.SENSOR_DELAY_NORMAL);
+        mSensorManager.registerListener(mSensorListener, mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_FASTEST);
+        mSensorManager.registerListener(mSensorListener, mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE), SensorManager.SENSOR_DELAY_FASTEST);
 
     }
 
@@ -111,6 +124,7 @@ public class RecordService extends Service{
             if (InsertGyroscopeToken) {
                 //WatchMainActivity.updateLog("InsertGyroscope",String.valueOf(axisX)+","+String.valueOf(axisY)+","+String.valueOf(axisZ));
                 new InsertGyroscope().execute(String.valueOf(axisX), String.valueOf(axisY), String.valueOf(axisZ));
+                //LOGD(TAG,"Get_Gyroscope_Data()");
             }
             GyroscopeTimestamp = event.timestamp;
         }
@@ -132,11 +146,13 @@ public class RecordService extends Service{
             if(InsertAccelerometerToken){
                 //WatchMainActivity.updateLog("InsertAccelerometer",String.valueOf(linear_acceleration[0])+","+String.valueOf(linear_acceleration[1])+","+String.valueOf(linear_acceleration[2]));
                 new InsertAccelerometer().execute(String.valueOf(linear_acceleration[0]),String.valueOf(linear_acceleration[1]),String.valueOf(linear_acceleration[2]));
+                //LOGD(TAG,"Get_Accelerometer_Data()");
             }
             AccelerometerTimestamp = event.timestamp;
         }
     }
 
+    @SuppressLint("StaticFieldLeak")
     private class InsertGyroscope extends AsyncTask<String,String,String> {
         @Override
         protected String doInBackground(String... params) {
@@ -145,8 +161,9 @@ public class RecordService extends Service{
             content.put("axisY", params[1]);
             content.put("axisZ", params[2]);
             content.put("StoreDate", GetTime());
+            content.put("UnixStoreDate", GetUnixTime());
             SQLiteManag.getWritableDatabase().insert("Gyroscope", null, content);
-            WatchMainActivity.updateLog("Gyroscope", "Insert");
+            //WatchMainActivity.updateLog("Gyroscope", "Insert");
             return null;
         }
         @Override
@@ -157,6 +174,7 @@ public class RecordService extends Service{
         }
     }
 
+    @SuppressLint("StaticFieldLeak")
     private class InsertAccelerometer extends AsyncTask<String,String,String> {
         @Override
         protected String doInBackground(String... params) {
@@ -165,8 +183,9 @@ public class RecordService extends Service{
             content.put("axisY", params[1]);
             content.put("axisZ", params[2]);
             content.put("StoreDate", GetTime());
+            content.put("UnixStoreDate", GetUnixTime());
             SQLiteManag.getWritableDatabase().insert("Accelerometer", null, content);
-            WatchMainActivity.updateLog("Accelerometer", "Insert");
+            //WatchMainActivity.updateLog("Accelerometer", "Insert");
             return null;
         }
         @Override
@@ -183,6 +202,11 @@ public class RecordService extends Service{
         return format.format(time);
     }
 
+    private long GetUnixTime(){
+        return System.currentTimeMillis();
+    }
+
+    @SuppressLint("StaticFieldLeak")
     private class ExportDBFile extends AsyncTask<String,Void,String> {
         @Override
         protected String doInBackground(String... params) {
@@ -214,4 +238,9 @@ public class RecordService extends Service{
         protected void onPreExecute() {
         }
     }
+
+    private void LOGD(String TAG, String Message){
+        Log.d(TAG,Message);
+    }
+
 }
