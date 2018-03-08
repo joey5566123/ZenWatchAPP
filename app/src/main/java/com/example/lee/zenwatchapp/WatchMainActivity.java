@@ -79,7 +79,6 @@ public class WatchMainActivity extends Activity{
         }
 
         Get_App_ID();
-
     }
 
     private void requestPermission() {
@@ -114,15 +113,43 @@ public class WatchMainActivity extends Activity{
                     }
                     break;
                 case R.id.export_btn:
-                    if (!Transfer) {
+                    /*if (!Transfer) {
                         export_status_view.setText("Connecting");
                         Transfer = true;
                         new ExportDBConnection().execute("");
-                    }
+                    }*/
+                    new ExportDBtoCSV().execute("");
                     break;
             }
         }
     };
+
+    private class ExportDBtoCSV extends AsyncTask<String,String,String>{
+
+        @Override
+        protected String doInBackground(String... strings) {
+            int i = 0;
+            String APPDataPath = Environment.getDataDirectory() + "/data/" + "com.example.lee.zenwatchapp" + "/databases/";
+            String ExportPath = Environment.getExternalStorageDirectory() + "/ZenWatchAPPDataFile/";
+            updateLog("Files", "APPDataPath: " + APPDataPath);
+            updateLog("Files", "ExportPath: " + ExportPath);
+            File APPDirectory = new File(APPDataPath);
+            File ExportDirectory = new File(ExportPath);
+            if (!ExportDirectory.exists()){
+                ExportDirectory.mkdir();
+            }
+            File[] APPDataFiles = APPDirectory.listFiles();
+            File[] ExportFiles = ExportDirectory.listFiles();
+            updateLog("Files", "APPDataFilesSizes: " + APPDataFiles.length);
+            updateLog("Files", "ExportFilesSizes: " + ExportFiles.length);
+            while (i < APPDataFiles.length){
+                updateLog("Files", "File Name: " + APPDataFiles[i].getName());
+                i++;
+            }
+            return null;
+        }
+    }
+
     private class ExportDBConnection extends AsyncTask<String,Void,String> {
         @Override
         protected String doInBackground(String... params) {
