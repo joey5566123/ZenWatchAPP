@@ -29,15 +29,14 @@ import java.util.Properties;
 
 public class WatchMainActivity extends Activity{
 
-    private TextView export_status_view, idtextview;
+    private TextView idtextview;
+    public static TextView export_status_view;
     private static TextView recording_status_view;
     private Socket ExportSocket;
     private static Button record_btn;
     private static String MyID;
-    private boolean Recording = false, Transfer = false;
+    private boolean Recording = false;
     private Intent ServiceIntent;
-
-    private static final String TAG = "MainActivity";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -79,7 +78,6 @@ public class WatchMainActivity extends Activity{
         }
 
         Get_App_ID();
-
     }
 
     private void requestPermission() {
@@ -110,113 +108,13 @@ public class WatchMainActivity extends Activity{
                         recording_status_view.setText("ON");
                         Recording = true;
                         record_btn.setText("Record OFF");
+                        export_status_view.setText("Waiting");
                         Toast.makeText(WatchMainActivity.this, "Start Record", Toast.LENGTH_SHORT).show();
-                    }
-                    break;
-                case R.id.export_btn:
-                    if (!Transfer) {
-                        export_status_view.setText("Connecting");
-                        Transfer = true;
-                        new ExportDBConnection().execute("");
                     }
                     break;
             }
         }
     };
-    private class ExportDBConnection extends AsyncTask<String,Void,String> {
-        @Override
-        protected String doInBackground(String... params) {
-            try{
-                String HOST_IP = "140.127.196.75";
-                int PORT = 7676;
-                ExportSocket = new Socket();
-                ExportSocket.connect(new InetSocketAddress(HOST_IP, PORT), 5000);
-            }
-            catch (Exception e){
-                Log.d("ConnectedException",e.getMessage());
-            }
-            return null;
-        }
-        @Override
-        protected void onPostExecute(String value){
-            if (ExportSocket.isConnected()){
-                export_status_view.setText("Connected");
-                export_status_view.setText("Sending Data");
-                new Send_App_ID().execute("");
-                //new ExportDBTransfer().execute("");
-            }
-        }
-        @Override
-        protected void onPreExecute() {
-        }
-    }
-
-    private class Send_App_ID extends AsyncTask<String,String,String>{
-
-        @Override
-        protected String doInBackground(String... params) {
-            if (ExportSocket.isConnected()){
-                try {
-                    byte[] Data = ("DeviceID:" + MyID + ";").getBytes("UTF-8");
-                    OutputStream os = ExportSocket.getOutputStream();
-                    os.write(Data);
-                }catch (UnsupportedEncodingException e){
-                }catch (IOException e){
-                }
-            }
-            return null;
-        }
-        @Override
-        protected void onPostExecute(String value){
-            new ExportDBTransfer().execute("");
-        }
-    }
-
-    private class ExportDBTransfer extends AsyncTask<String,Void,String> {
-        @Override
-        protected String doInBackground(String... params) {
-            try{
-                File SD = Environment.getExternalStorageDirectory();
-                String DataSDPath = WatchMainActivity.App_ID() + ".db";
-                Log.d("FilePath", DataSDPath);
-                File Data = new File(SD, DataSDPath);
-                if (Data.exists()){
-                    Log.d("File", "File Exist");
-                    byte [] EndString = ("FileEnd").getBytes("UTF-8");
-                    byte [] Data_byte = new byte[(int)Data.length()];
-                    BufferedInputStream bis = new BufferedInputStream(new FileInputStream(Data));
-                    bis.read(Data_byte, 0, Data_byte.length);
-                    ByteArrayOutputStream bo = new ByteArrayOutputStream();
-                    //bo.write(StartString);
-                    bo.write(Data_byte);
-                    bo.write(EndString);
-                    byte [] AllByte = bo.toByteArray();
-                    OutputStream os = ExportSocket.getOutputStream();
-                    Log.d("Sending File", "Sending " + Data.getName() + "(" + AllByte.length + " bytes)");
-                    os.write(AllByte, 0, AllByte.length);
-                    os.flush();
-                }
-            }
-            catch (Exception ignored){
-            }
-            return null;
-        }
-        @Override
-        protected void onPostExecute(String value){
-            Transfer = false;
-            export_status_view.setText("Done");
-            /*if (ExportSocket.isConnected()){
-                try {
-                    ExportSocket.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }*/
-        }
-        @Override
-        protected void onPreExecute() {
-        }
-    }
 
     public static void ChangeRecordStatusView(){
         record_btn.setText("Record ON");

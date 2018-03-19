@@ -21,7 +21,7 @@ public class SQLiteManager extends SQLiteOpenHelper{
                 "axisY FLOAT, " +
                 "axisZ FLOAT, " +
                 "StoreDate DATETIME, " +
-                "UnixStoreDate INT" +
+                "UnixTimeStamp INT" +
                 ");";
         final String CreateAccelerometerTable = "CREATE TABLE IF NOT EXISTS " + AccelerometerTable + "( " +
                 "ID INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -29,7 +29,7 @@ public class SQLiteManager extends SQLiteOpenHelper{
                 "axisY FLOAT, " +
                 "axisZ FLOAT, " +
                 "StoreDate DATETIME, " +
-                "UnixStoreDate INT" +
+                "UnixTimeStamp INT" +
                 ");";
         db.execSQL(CreateGyroscopeTable);
         db.execSQL(CreateAccelerometerTable);

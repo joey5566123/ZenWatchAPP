@@ -6,6 +6,8 @@ import android.app.Service;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -20,6 +22,7 @@ import android.util.Log;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.text.SimpleDateFormat;
@@ -52,11 +55,11 @@ public class RecordService extends Service{
     @Override
     public void onDestroy(){
         WatchMainActivity.updateLog(TAG, "----> onDestroy()");
-        //mSensorManager.unregisterListener();
         InsertGyroscopeToken = false;
         InsertAccelerometerToken = false;
         new ExportDBFile().executeOnExecutor(AsyncTask.SERIAL_EXECUTOR);
         wakeLock.release();
+        SQLiteManag.close();
         super.onDestroy();
     }
 
@@ -75,7 +78,7 @@ public class RecordService extends Service{
 
         wakeLock.acquire();
 
-        SQLiteManag = new SQLiteManager(this, WatchMainActivity.App_ID() + ".db", null, SQLiteVersion);
+        SQLiteManag = new SQLiteManager(this, WatchMainActivity.App_ID() + "-" + GetTime() + ".db", null, SQLiteVersion);
 
         if (InsertGyroscopeToken || InsertAccelerometerToken){
             InsertGyroscopeToken = false;
@@ -161,7 +164,7 @@ public class RecordService extends Service{
             content.put("axisY", params[1]);
             content.put("axisZ", params[2]);
             content.put("StoreDate", GetTime());
-            content.put("UnixStoreDate", GetUnixTime());
+            content.put("UnixTimeStamp", GetUnixTime());
             SQLiteManag.getWritableDatabase().insert("Gyroscope", null, content);
             //WatchMainActivity.updateLog("Gyroscope", "Insert");
             return null;
@@ -183,7 +186,7 @@ public class RecordService extends Service{
             content.put("axisY", params[1]);
             content.put("axisZ", params[2]);
             content.put("StoreDate", GetTime());
-            content.put("UnixStoreDate", GetUnixTime());
+            content.put("UnixTimeStamp", GetUnixTime());
             SQLiteManag.getWritableDatabase().insert("Accelerometer", null, content);
             //WatchMainActivity.updateLog("Accelerometer", "Insert");
             return null;
@@ -210,32 +213,80 @@ public class RecordService extends Service{
     private class ExportDBFile extends AsyncTask<String,Void,String> {
         @Override
         protected String doInBackground(String... params) {
-            File sd = Environment.getExternalStorageDirectory();
-            File Data = Environment.getDataDirectory();
-            FileChannel source;
-            FileChannel destination;
-            String currenDBPath = "/data/" + "com.example.lee.zenwatchapp" + "/databases/" + WatchMainActivity.App_ID() + ".db";
-            String backupDBPath = WatchMainActivity.App_ID() + ".db";
-            File currenceDB = new File(Data, currenDBPath);
-            File backupDB = new File(sd, backupDBPath);
-            try{
-                source = new FileInputStream(currenceDB).getChannel();
-                destination = new FileOutputStream(backupDB).getChannel();
-                destination.transferFrom(source, 0, source.size());
-                source.close();
-                destination.close();
-                WatchMainActivity.updateLog("File Export", "File Export!");
-            }catch (IOException e){
-                e.printStackTrace();
+            int i = 0;
+            String APPDataPath = Environment.getDataDirectory() + "/data/" + "com.example.lee.zenwatchapp" + "/databases/";
+            String ExportPath = Environment.getExternalStorageDirectory() + "/ZenWatchAPPDataFile/";
+            LOGD("Files", "APPDataPath: " + APPDataPath);
+            LOGD("Files", "ExportPath: " + ExportPath);
+            File APPDirectory = new File(APPDataPath);
+            File ExportDirectory = new File(ExportPath);
+            if (!ExportDirectory.exists()){
+                ExportDirectory.mkdir();
+            }
+            File[] APPDataFiles = APPDirectory.listFiles();
+            File[] ExportFiles = ExportDirectory.listFiles();
+            LOGD("Files", "APPDataFilesSizes: " + APPDataFiles.length);
+            LOGD("Files", "ExportFilesSizes: " + ExportFiles.length);
+            while (i < APPDataFiles.length - 1) {
+                if (!APPDataFiles[i].getName().contains("journal")) {
+                    LOGD("Files", "FileExport: " + APPDataFiles[i].getName());
+                    File ACCFile = new File(ExportDirectory, APPDataFiles[i].getName() + "-Accelerometer" + ".csv");
+                    File GyrFile = new File(ExportDirectory, APPDataFiles[i].getName() + "-Gyroscope" + ".csv");
+                    try{
+                        ACCFile.createNewFile();
+                        CSVWriter csvWriter = new CSVWriter(new FileWriter(ACCFile));
+                        SQLiteManager SQLiteMag = new SQLiteManager(RecordService.this, APPDataFiles[i].getName(), null, SQLiteVersion);
+                        SQLiteDatabase db = SQLiteMag.getReadableDatabase();
+                        Cursor curCSV = db.rawQuery("SELECT * FROM Accelerometer", null);
+                        csvWriter.writeNext(curCSV.getColumnNames());
+                        while (curCSV.moveToNext()){
+                            String arrStr[] = {curCSV.getString(0),curCSV.getString(1), curCSV.getString(2), curCSV.getString(3), curCSV.getString(4), curCSV.getString(5)};
+                            csvWriter.writeNext(arrStr);
+                        }
+                        db.close();
+                        csvWriter.close();
+                        curCSV.close();
+                    }catch (Exception sqlEX){
+                        LOGD(TAG,sqlEX.getMessage());
+                    }
+                    try{
+                        GyrFile.createNewFile();
+                        CSVWriter csvWriter = new CSVWriter(new FileWriter(GyrFile));
+                        SQLiteManager SQLiteMag = new SQLiteManager(RecordService.this, APPDataFiles[i].getName(), null, SQLiteVersion);
+                        SQLiteDatabase db = SQLiteMag.getReadableDatabase();
+                        Cursor curCSV = db.rawQuery("SELECT * FROM Gyroscope", null);
+                        csvWriter.writeNext(curCSV.getColumnNames());
+                        while (curCSV.moveToNext()){
+                            String arrStr[] = {curCSV.getString(0),curCSV.getString(1), curCSV.getString(2), curCSV.getString(3), curCSV.getString(4), curCSV.getString(5)};
+                            csvWriter.writeNext(arrStr);
+                        }
+                        db.close();
+                        csvWriter.close();
+                        curCSV.close();
+                    }catch (Exception sqlEX){
+                        LOGD(TAG,sqlEX.getMessage());
+                    }
+                    boolean deleted = APPDataFiles[i].delete();
+                    if (deleted){
+                        LOGD("Deleted", APPDataFiles[i].getName());
+                    }
+                }
+                boolean deleted = APPDataFiles[i].delete();
+                if (deleted){
+                    LOGD("Deleted", APPDataFiles[i].getName());
+                }
+                i++;
             }
             return null;
         }
         @Override
         protected void onPostExecute(String value){
             WatchMainActivity.ChangeRecordStatusView();
+            WatchMainActivity.export_status_view.setText("CSV File Exported");
         }
         @Override
         protected void onPreExecute() {
+            WatchMainActivity.export_status_view.setText("DB File Transforming");
         }
     }
 
