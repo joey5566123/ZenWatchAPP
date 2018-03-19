@@ -55,7 +55,6 @@ public class RecordService extends Service{
     @Override
     public void onDestroy(){
         WatchMainActivity.updateLog(TAG, "----> onDestroy()");
-        //mSensorManager.unregisterListener();
         InsertGyroscopeToken = false;
         InsertAccelerometerToken = false;
         new ExportDBFile().executeOnExecutor(AsyncTask.SERIAL_EXECUTOR);
@@ -95,7 +94,7 @@ public class RecordService extends Service{
             public void onSensorChanged(SensorEvent event) {
                 Sensor sensor = event.sensor;
                 if (sensor.getType() == Sensor.TYPE_GYROSCOPE) {
-                    Get_Gyroscope_Data(event, GetTime(), GetUnixTime());
+                    Get_Gyroscope_Data(event);
                 } else if (sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
                     Get_Accelerometer_Data(event);
                 }
@@ -214,24 +213,6 @@ public class RecordService extends Service{
     private class ExportDBFile extends AsyncTask<String,Void,String> {
         @Override
         protected String doInBackground(String... params) {
-            /*File sd = Environment.getExternalStorageDirectory();
-            File Data = Environment.getDataDirectory();
-            FileChannel source;
-            FileChannel destination;
-            String currenDBPath = "/data/" + "com.example.lee.zenwatchapp" + "/databases/" + WatchMainActivity.App_ID() + ".db";
-            String backupDBPath = WatchMainActivity.App_ID() + ".db";
-            File currenceDB = new File(Data, currenDBPath);
-            File backupDB = new File(sd, backupDBPath);
-            try{
-                source = new FileInputStream(currenceDB).getChannel();
-                destination = new FileOutputStream(backupDB).getChannel();
-                destination.transferFrom(source, 0, source.size());
-                source.close();
-                destination.close();
-                WatchMainActivity.updateLog("File Export", "File Export!");
-            }catch (IOException e){
-                e.printStackTrace();
-            }*/
             int i = 0;
             String APPDataPath = Environment.getDataDirectory() + "/data/" + "com.example.lee.zenwatchapp" + "/databases/";
             String ExportPath = Environment.getExternalStorageDirectory() + "/ZenWatchAPPDataFile/";
@@ -296,67 +277,16 @@ public class RecordService extends Service{
                 }
                 i++;
             }
-            /*while (i < APPDataFiles.length){
-                if (!APPDataFiles[i].getName().contains("journal")){
-                    LOGD("Files", "FileName: " + APPDataFiles[i].getName());
-                    if (ExportFiles.length == 0){
-                        LOGD("Files", "Export File: " + APPDataFiles[i].getName());
-                        File file = new File(ExportDirectory, APPDataFiles[i].getName() + ".csv");
-                        try{
-                            file.createNewFile();
-                            CSVWriter csvWriter = new CSVWriter(new FileWriter(file));
-                            SQLiteManager SQLiteMag = new SQLiteManager(RecordService.this, WatchMainActivity.App_ID() + GetTime() + ".db", null, SQLiteVersion);
-                            SQLiteDatabase db = SQLiteMag.getReadableDatabase();
-                            Cursor curCSV = db.rawQuery("SELECT * FROM Accelerometer", null);
-                            csvWriter.writeNext(curCSV.getColumnNames());
-                            while (curCSV.moveToNext()){
-                                String arrStr[] = {curCSV.getString(0),curCSV.getString(1), curCSV.getString(2), curCSV.getString(3), curCSV.getString(4), curCSV.getString(5)};
-                                csvWriter.writeNext(arrStr);
-                            }
-                            csvWriter.close();
-                            curCSV.close();
-                        }catch (Exception sqlEX){
-                            LOGD(TAG,sqlEX.getMessage());
-                        }
-                    }else {
-                        while (j < ExportFiles.length){
-                            if (ExportFiles[j].getName().contains(APPDataFiles[i].getName())){
-                                LOGD("Files", "ExportFolder already have this file! " + APPDataFiles[i].getName());
-                            }
-                            else{
-                                LOGD("Files", "ExportFolder did't have this file! " + APPDataFiles[i].getName());
-                                File file = new File(ExportDirectory, APPDataFiles[i].getName() + ".csv");
-                                try{
-                                    file.createNewFile();
-                                    CSVWriter csvWriter = new CSVWriter(new FileWriter(file));
-                                    SQLiteDatabase db = SQLiteManag.getReadableDatabase();
-                                    Cursor curCSV = db.rawQuery("SELECT * FROM Accelerometer", null);
-                                    csvWriter.writeNext(curCSV.getColumnNames());
-                                    while (curCSV.moveToNext()){
-                                        String arrStr[] = {curCSV.getString(0),curCSV.getString(1), curCSV.getString(2), curCSV.getString(3), curCSV.getString(4), curCSV.getString(5)};
-                                        csvWriter.writeNext(arrStr);
-                                    }
-                                    csvWriter.close();
-                                    curCSV.close();
-                                }catch (Exception sqlEX){
-                                    LOGD(TAG,sqlEX.getMessage());
-                                }
-                            }
-                            j++;
-                        }
-                    }
-                }
-                i++;
-                j=0;
-            }*/
             return null;
         }
         @Override
         protected void onPostExecute(String value){
             WatchMainActivity.ChangeRecordStatusView();
+            WatchMainActivity.export_status_view.setText("CSV File Exported");
         }
         @Override
         protected void onPreExecute() {
+            WatchMainActivity.export_status_view.setText("DB File Transforming");
         }
     }
 
