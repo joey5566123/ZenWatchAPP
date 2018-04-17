@@ -125,9 +125,7 @@ public class RecordService extends Service{
                 axisZ /= omegaMagnitude;
             }
             if (InsertGyroscopeToken) {
-                //WatchMainActivity.updateLog("InsertGyroscope",String.valueOf(axisX)+","+String.valueOf(axisY)+","+String.valueOf(axisZ));
                 new InsertGyroscope().execute(String.valueOf(axisX), String.valueOf(axisY), String.valueOf(axisZ));
-                //LOGD(TAG,"Get_Gyroscope_Data()");
             }
             GyroscopeTimestamp = event.timestamp;
         }
@@ -147,9 +145,7 @@ public class RecordService extends Service{
             linear_acceleration[2] = event.values[2] - gravity[2];
 
             if(InsertAccelerometerToken){
-                //WatchMainActivity.updateLog("InsertAccelerometer",String.valueOf(linear_acceleration[0])+","+String.valueOf(linear_acceleration[1])+","+String.valueOf(linear_acceleration[2]));
                 new InsertAccelerometer().execute(String.valueOf(linear_acceleration[0]),String.valueOf(linear_acceleration[1]),String.valueOf(linear_acceleration[2]));
-                //LOGD(TAG,"Get_Accelerometer_Data()");
             }
             AccelerometerTimestamp = event.timestamp;
         }
@@ -166,7 +162,6 @@ public class RecordService extends Service{
             content.put("StoreDate", GetTime());
             content.put("UnixTimeStamp", GetUnixTime());
             SQLiteManag.getWritableDatabase().insert("Gyroscope", null, content);
-            //WatchMainActivity.updateLog("Gyroscope", "Insert");
             return null;
         }
         @Override
@@ -188,7 +183,6 @@ public class RecordService extends Service{
             content.put("StoreDate", GetTime());
             content.put("UnixTimeStamp", GetUnixTime());
             SQLiteManag.getWritableDatabase().insert("Accelerometer", null, content);
-            //WatchMainActivity.updateLog("Accelerometer", "Insert");
             return null;
         }
         @Override
